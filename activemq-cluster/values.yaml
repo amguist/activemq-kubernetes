@@ -1,0 +1,25 @@
+activemq:
+  ## activemq.pullPolicy is the kubernetes policy to use for pulling images: Always, IfNotPresent, Never
+  pullPolicy: IfNotPresent
+  ## activemq.image is the name of activemq container image to use
+  image: rmohr/activemq
+  ## activemq.tag is the tag of activemq container image to use
+  tag: latest
+  ## activemq.serviceName is the service name used by clients to find the cluster
+  serviceName: activemq
+  ## activemq.headlessService is the name of headless service used by StatefulSet
+  headlessService: broker
+  ## serverName is the name used by StatefulSet to identify instances
+  serverName: activemq
+  ## activemq.nodes is set to number of nodes in activemq cluster
+  nodes: 1
+  ## activemq.jvmFlags are default java options to use with activemq
+  jvmFlags: -Xmx2G
+  ## activemq.storageSize is the default size of storage when using persistent volumes
+  storageSize: 2GiB
+  ## activemq.persistent is set to true to use persistent volumes
+  persistent: false
+  ## secured is set to true if clients must authenticate. Only supports plaintext SASL mechanism.
+  secured: true
+  ## activemq.nodeSelector can be set with node labels to use when choosing nodes to deploy
+  nodeSelector:

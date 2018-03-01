@@ -1,0 +1,12 @@
+name: activemq-cluster
+version: 0.0.1
+description: ActiveMQ Cluster
+keywords:
+  - activemq
+home: https://github.com/amguist/activemq-kubernetes.git
+sources:
+  - https://github.com/amguist/activemq-kubernetes.git
+maintainers:
+  - name: Aaron Guist
+engine: gotpl # The name of the template engine (optional, defaults to gotpl)
+appVersion: 1.0.0-1

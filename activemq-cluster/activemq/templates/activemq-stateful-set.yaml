@@ -1,0 +1,105 @@
+{{- if .Capabilities.APIVersions.Has "apps/v1beta2" }}
+apiVersion: "apps/v1beta2"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1beta1" }}
+apiVersion: "apps/v1beta1"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1alpha1" }}
+apiVersion: "apps/v1alpha1"
+kind: PetSet
+{{- end }}
+metadata:
+  name: {{ .Values.serverName | quote }}
+  labels:
+    component: activemq-broker
+    {{ include "standardLabels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      component: activemq-broker
+      {{ include "standardLabels" . | indent 6 }}
+  serviceName: {{ .Values.headlessService | quote }}
+  replicas: {{ .Values.nodes }}
+  template:
+    metadata:
+      labels:
+        component: activemq-broker
+        {{ include "standardLabels" . | indent 8 }}
+      annotations:
+      {{- if .Values.global.prometheus }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9779"
+      {{- end }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - {{ .Values.global.applicationName }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- range $key, $val := .Values.nodeSelector }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end}}
+      {{- end }}
+      terminationGracePeriodSeconds: 1
+      containers:
+      - name: broker
+        image: {{ if .Values.imageRegistry }}{{ .Values.imageRegistry }}/{{ end }}{{ .Values.image }}:{{ .Values.tag }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        env:
+        - name: ACTIVEMQ_OPTS
+          value: "{{ .Values.jvmFlags }} {{ end }}"
+        ports:
+        - containerPort: 61616
+          name: activemq
+        {{- if .Values.global.prometheus }}
+        - containerPort: 9779
+          name: prometheus
+        {{- end }}
+        livenessProbe:
+          tcpSocket:
+            port: 61616
+          initialDelaySeconds: 20
+        readinessProbe:
+          tcpSocket:
+            port: 61616
+          initialDelaySeconds: 10
+        volumeMounts:
+        - name: datadir
+          mountPath: /appdata/amq/data
+        - name: activemq-service-properties
+          mountPath: /appdata/amq/config
+        {{- end }}
+      volumes:
+      - name: datadir
+        {{- if .Values.persistent }}
+           mountPath: /appdata/amq/data
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
+  {{- if .Values.persistent }}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.global.applicationName }}-activemq-datadir
+      labels:
+        component: activemq-broker
+        {{ include "standardLabels" . | indent 8 }}
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.storageSize | quote }}
+  {{- end }}
